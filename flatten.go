@@ -270,15 +270,23 @@ func nameInlinedSchemas(opts *FlattenOpts) error {
 }
 
 func removeUnused(opts *FlattenOpts) {
-	expected := make(map[string]struct{})
+
+	expected := make(map[string]struct{}) //Creating the map that will have the paths that needs to be removed
 	for k := range opts.Swagger().Definitions {
 		expected[path.Join(definitionsPath, jsonpointer.Escape(k))] = struct{}{}
+		//Inserting paths and their k in the map
 	}
-
+	//cheking all the schemas through the json pointer
+	/*Issue could also be that it never discovers the self refecing paths*/
 	for _, k := range opts.Spec.AllDefinitionReferences() {
-		delete(expected, k)
+		//check if the schema is self referencing and keep it in the map
+		if k == path.Join(definitionsPath, jsonpointer.Escape(k)) {
+			expected[k] = struct{}{}
+		} else {
+			delete(expected, k)
+		}
 	}
-
+	/*Once the map is left with the unused paths it removes them*/
 	for k := range expected {
 		debugLog("removing unused definition %s", path.Base(k))
 		if opts.Verbose {
